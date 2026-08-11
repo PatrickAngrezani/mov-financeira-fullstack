@@ -11,11 +11,20 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "incremental": true,
+
+    "paths": {
+      "@src/*": ["src/*"]
+    },
+
+    "rootDir": "./",
     "skipLibCheck": true,
-    "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
-    "noImplicitAny": false,
-    "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
-  }
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true
+  },
+
+  "exclude": ["node_modules", "dist", "prisma.config.ts"]
 }

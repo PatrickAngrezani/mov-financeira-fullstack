@@ -1,0 +1,16 @@
+node_modules
+dist
+src/generated
+
+prisma.config.js
+prisma.config.d.ts
+prisma.config.js.map
+*.tsbuildinfo
+coverage
+.env
+.env.*
+!.env.example
+*.log
+.git
+.vscode
+.DS_Store
