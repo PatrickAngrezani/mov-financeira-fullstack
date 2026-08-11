@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id String @id @default(uuid(7)) @db.Uuid
+
+  email        String @unique @db.VarChar(255)
+  name         String @db.VarChar(120)
+  passwordHash String @map("password_hash") @db.VarChar(255)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  categories Category[]
+  movements  Movement[]
+
+  @@map("users")
+}
+
+model Category {
+  id     String @id @default(uuid(7)) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+
+  name  String  @db.VarChar(60)
+  color String? @db.VarChar(7)
+
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(3)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movements Movement[]
+
+  @@unique([userId, name])
+  @@unique([id, userId], map: "categories_id_user_unique")
+  @@map("categories")
+}
+
+model Movement {
+  id         String @id @default(uuid(7)) @db.Uuid
+  userId     String @map("user_id") @db.Uuid
+  categoryId String @map("category_id") @db.Uuid
+
+  type MovementType
+
+  amount      Decimal  @db.Decimal(14, 2)
+  description String   @db.VarChar(255)
+
+  occurredAt  DateTime @map("occurred_at") @db.Date
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId, userId], references: [id, userId], onDelete: NoAction, map: "movements_category_same_owner")
+
+  @@index([userId, occurredAt(sort: Desc), id(sort: Desc)])
+  @@index([categoryId, occurredAt(sort: Desc)])
+  @@map("movements")
+}
+
+enum MovementType {
+  INCOME
+  EXPENSE
+
+  @@map("movement_type")
+}
