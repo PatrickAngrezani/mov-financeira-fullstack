@@ -9,7 +9,7 @@ RUN apt-get update \
 COPY package*.json ./
 
 # --ignore-scripts
-RUN npm ci 
+RUN npm ci --ignore-scripts
 
 # ---------- build ----------
 FROM deps AS build
