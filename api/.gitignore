@@ -10,8 +10,6 @@ package-lock.json
 /prisma.config.js.map
 *.tsbuildinfo
 
-/src/generated
-
 # Logs
 logs
 *.log
