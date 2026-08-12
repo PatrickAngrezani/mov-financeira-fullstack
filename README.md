@@ -1,92 +1,236 @@
-# 💼 Desafio Técnico Dev Fullstack
-Este é um desafio técnico para a vaga de Desenvolvedor Pleno. Seu objetivo é desenvolver uma aplicação movimentações financeiras, com autenticação de usuário, associação de categorias e persistência em banco de dados.
+# Movimentações Financeiras
 
-## 🧰 Requisitos Técnicos
-- Usar a estrutura inicial deste repositório (API utilizando NestJS e UI utilizando NextJS+Tailwind).
-- Login de usuário.
-- Cadastro de Usuários.
-- Cadastro de Movimentações.
-- Cadastro de Categorias
-- As movimentações devem ser associadas ao usuário autenticado.
+Controle de movimentações financeiras pessoais: autenticação, categorias por
+usuário e lançamentos de receita/despesa com filtros e paginação.
 
-## ✅ O que será avaliado?
+Enunciado original do desafio: [CHALLENGE.md](./CHALLENGE.md).
 
-- **📁 Organização do Código**  
-  Estrutura clara de pastas e arquivos, padronização e uso adequado de convenções do framework.
+---
 
-- **🧹 Legibilidade e Clareza**  
-  Código limpo, bem nomeado e fácil de entender. Comentários úteis (quando necessário) e ausência de complexidade desnecessária.
+## Rodando o projeto
 
-- **🛠️ Boas Práticas de Desenvolvimento**  
-  Uso de princípios como DRY (Don't Repeat Yourself), SOLID, controle de erros, validações e segurança básica.
+**Pré-requisito único: Docker.** Não é necessário Node, Postgres nem arquivo
+`.env` na máquina.
 
-- **💾 Persistência de Dados**  
-  Implementação correta de banco de dados, com relacionamentos adequados entre usuários, categorias e movimentações.  
-  **Dica:** Use um ORM 👀
-
-- **📝 Documentação**  
-  README com orientações completas sobre instalação*, execução e stack utilizada.  
-  A API deve estar documentada com **Swagger**.
-
-> ⚠️ **Importante:** Projetos que **não rodarem seguindo as instruções do README** poderão **ser desconsiderados** na avaliação.
-
-
-## 🌟 Diferenciais
-Não são obrigatórios, mas serão considerados um **bônus** na sua avaliação:
-
-- 🧪 **Testes Automatizados**  
-  Cobertura de testes (unitários e/ou de integração).
-
-- 📱 **Responsividade no Frontend**  
-  Interface adaptada para diferentes tamanhos de tela.
-
-- 🚀 **Deploy do Projeto**  
-  Aplicação hospedada (ex: Vercel, Netlify, Render, Railway, etc), com link acessível no README.
-
-- 🛡️ **Tratamento de Erros e Validações**  
-  Respostas consistentes e mensagens claras de erro na API.
-
-- 🧩 **Arquitetura Escalável**  
-  Separação por camadas (ex: controllers, services, repositories), facilitando manutenção e evolução do projeto.
-
-- 🗂️ **Documentação Extra**  
-  Diagramas, fluxos ou qualquer outro material que ajude a entender a arquitetura ou decisões técnicas.
-
-## 📁 Estrutura do Projeto
-
-O projeto está dividido em duas aplicações separadas:
-```text
-📦 projeto-raiz/
-├── 📁 api/                      # Backend (NestJS)
-│   ├── 📁 node_modules/
-│   ├── 📁 src/                  # Código-fonte da API
-│   ├── 📁 test/                 # Testes automatizados
-│   ├── ...
-│
-├── 📁 ui/                       # Frontend (Next.js)
-│   ├── 📁 node_modules/
-│   ├── 📁 public/               # Arquivos estáticos
-│   ├── 📁 src/
-│   │   └── 📁 app/              # Código-fonte do frontend
-│   ├── ...
+```bash
+git clone <url-do-repositorio>
+cd mov-financeira-fullstack
+docker compose up -d --build
 ```
 
-## 🗄️ Banco de Dados
-Se sua aplicação utilizar **banco de dados relacional** (como PostgreSQL, MySQL, etc), é **obrigatório** fornecer um dos seguintes:
+O `up` sobe três serviços em ordem, esperando o anterior ficar saudável:
 
-- Script SQL para criação das tabelas e estruturas necessárias  
-  **ou**
-- Migrations configuradas e executáveis via ORM.
+| Serviço | Porta | O que faz no start |
+|---|---|---|
+| `db` | 5432 | Postgres 16 |
+| `api` | 3001 | aplica as migrations, roda o seed, sobe a API |
+| `ui` | 3000 | serve o frontend |
 
-> ⚠️ **Importante:** Sem essas informações, **não será possível rodar a aplicação**, e ela poderá ser **desconsiderada** na avaliação.
+- **Aplicação:** http://localhost:3000
+- **Swagger:** http://localhost:3001/swagger
+- **Health:** http://localhost:3001/health/ready
 
-## ⏱️ Prazo de entrega sugerido:
-3 a 5 dias corridos. Qualidade importa mais do que velocidade.
+### Credenciais de demonstração
 
-## 🚀 Como Enviar sua Solução
-- 🔀 Faça um Fork deste repositório para a sua conta no GitHub.
-- 🧑🏽‍💻 Implemente a sua solução no repositório forkado.
-- 🌐 Certifique-se de que o repositório esteja público.
-- 📩 Envie o link do seu repositório para o e-mail:
-  - ti@profissionaissa.com
-  - Com cópia para: jonata.martins@profissionaissa.com
+O seed cria uma conta pronta, com as 8 categorias padrão:
+
+```
+e-mail: user1@email.dev
+senha:  user1-123@
+```
+
+Não é preciso rodar nada à mão: o entrypoint do container aplica as migrations,
+executa o seed e só então sobe a API — nessa ordem.
+
+O seed é **idempotente**: reiniciar o container não recria nem sobrescreve a
+conta, então uma troca de senha durante a avaliação não é desfeita. Ele roda pelo
+mesmo `UsersService` que atende `POST /auth/register`, com o mesmo Argon2 — por
+isso as credenciais acima não podem divergir do hash gravado.
+
+```bash
+docker compose logs -f api    # acompanhar migrations e seed
+docker compose down -v        # derrubar tudo, incluindo o volume do banco
+```
+
+---
+
+## Stack
+
+| Camada | Escolha |
+|---|---|
+| API | NestJS 11 sobre **Fastify** |
+| ORM | **Prisma 7** |
+| Banco | PostgreSQL 16 |
+| Auth | JWT HS256 próprio (`@nestjs/jwt`), sem Passport; senha em **Argon2id** |
+| Validação | `class-validator` + `class-transformer`; env com **Zod**, fail-fast no boot |
+| Docs | Swagger (`@nestjs/swagger`) |
+| Logs | Pino estruturado com `correlationId` ponta a ponta |
+| Frontend | Next.js 15 (App Router) + **Tailwind v4 CSS-first** |
+| Testes | Jest |
+
+---
+
+## Executando fora do Docker
+
+```bash
+# banco
+docker compose up -d db
+
+# API
+cd api
+cp .env.example .env          
+npm install                   # o postinstall já roda `prisma generate`
+npm run db:migrate            # aplica as migrations
+npm run db:seed               # opcional: cria a conta de demonstração
+npm run start:dev             # http://localhost:3001
+
+# frontend
+cd ui
+npm install
+API_URL=http://localhost:3001 npm run dev   # http://localhost:3000
+```
+
+### Testes
+
+```bash
+cd api
+npm test          # 65 unitários — não precisam de banco
+npm run test:e2e  # 99 e2e — EXIGEM o Postgres no ar (docker compose up -d db)
+npm run test:all
+```
+
+---
+
+## Banco de dados
+
+Migrations versionadas em [`api/prisma/migrations`](./api/prisma/migrations),
+aplicadas automaticamente no start do container (`prisma migrate deploy`).
+
+Três tabelas: `users`, `categories`, `movements`.
+
+```
+users ──1:N──> categories ──1:N──> movements
+  └────────────1:N───────────────────┘
+```
+
+`movements.user_id` é **desnormalizado de propósito** — permite listar as
+movimentações do usuário sem JOIN e viabiliza a proteção descrita abaixo.
+
+### Invariantes garantidas pelo banco, não pela aplicação
+
+| Constraint | Protege contra |
+|---|---|
+| `movements_category_same_owner` — FK **composta** `(category_id, user_id)` → `categories(id, user_id)` | Vincular movimentação a categoria de **outro usuário**. Nem um bug no service, nem um `INSERT` manual conseguem: o banco recusa |
+| `movements_amount_positive` — `CHECK (amount > 0)` | Valor negativo. `@IsPositive()` protege uma porta; migration, seed e `psql` entram por outras |
+| `UNIQUE (user_id, name)` em `categories` | Categoria duplicada — por usuário, não global |
+| `ON DELETE CASCADE` em `user_id` | Órfãos ao excluir usuário |
+| `ON DELETE NO ACTION` em `category_id` | Apagar categoria com histórico. Vira **409 CATEGORY_IN_USE**; o caminho é arquivar |
+
+---
+
+## Decisões técnicas
+
+### Dinheiro nunca passa por ponto flutuante
+`NUMERIC(14,2)` no banco e **string** no JSON, na entrada e na saída.
+`JSON.parse('{"amount":0.1}')` produz um float IEEE-754 e a soma de centavos
+deixa de fechar. Recebendo e devolvendo texto, o valor chega ao Postgres exato.
+
+O mapper usa `.toFixed(2)`, e isso é requisito de contrato: `Decimal.toJSON()`
+do Prisma **descarta zeros à direita** — `100.00` sairia como `"100"`. Há 7 casos
+de teste cobrindo isso.
+
+### Data de competência não tem fuso
+`occurredAt` é `DATE` puro e trafega como `YYYY-MM-DD`. O comportamento foi
+**medido** antes de escrever o mapper: o adapter do Prisma devolve `DATE` como
+meia-noite **UTC**, então formatar por partes locais erraria um dia em qualquer
+fuso negativo. Os testes conferem contra o valor cru da coluna, não contra o que
+a API devolve.
+
+### Autorização é estrutural
+Recurso de outro usuário devolve **404, nunca 403** — um 403 confirmaria que o id
+existe e permitiria enumeração. As consultas são escopadas por dono no próprio
+`where`, sem `if (row.userId !== userId)` para alguém esquecer.
+
+### Sessão em cookie httpOnly (BFF)
+O browser fala apenas com o Next; o Next chama a API server-to-server. O token
+nunca chega ao JavaScript do cliente, então um XSS não exfiltra a sessão — e não
+há CORS a configurar. Leituras por Server Components, escritas por Server Actions.
+
+### Segurança do login
+- **Argon2id**
+- E-mail inexistente e senha errada devolvem resposta **idêntica** e consomem o
+  **mesmo tempo** (há um hash descartável no caminho sem conta), para não revelar
+  quais contas existem
+- `algorithms: ['HS256']` fixado na verificação, fechando `alg: none` e a
+  confusão RS256→HS256
+- Rate limit: 100 req/min global, 10/min no login, 5/min no cadastro
+
+---
+
+## API
+
+Todas as rotas exigem `Authorization: Bearer <token>`, exceto as marcadas.
+Documentação completa e navegável no **Swagger**.
+
+| Método | Rota | |
+|---|---|---|
+| POST | `/auth/register` | público — cria a conta com 8 categorias padrão e já devolve o token |
+| POST | `/auth/login` | público |
+| GET | `/auth/me` | perfil do titular do token |
+| GET | `/categories` | `?includeArchived=true` para incluir arquivadas |
+| POST · GET · PATCH · DELETE | `/categories[/:id]` | `DELETE` devolve 409 se houver movimentações |
+| GET | `/movements` | `?type=&categoryId=&from=&to=&page=&perPage=` |
+| POST · GET · PATCH · DELETE | `/movements[/:id]` | |
+| GET | `/health/live` · `/health/ready` | público |
+
+---
+
+## Estrutura
+
+```
+📦 mov-financeira-fullstack
+├── api/                     NestJS
+│   ├── prisma/              schema + migrations
+│   ├── src/
+│   │   ├── auth/            controller, service, guard, dto
+│   │   ├── categories/
+│   │   ├── movements/
+│   │   ├── users/
+│   │   ├── health/
+│   │   ├── prisma/          service, module, tradução de erros
+│   │   ├── crypto/          Argon2
+│   │   ├── config/          env (Zod) + fachada tipada
+│   │   ├── logging/
+│   │   └── common/          filtros, erros, dto, decorators, pipes
+│   └── test/
+│       ├── unit/            sem banco
+│       └── e2e/             contra Postgres real
+├── ui/                      Next.js
+│   └── src/
+│       ├── app/(auth)/      login, cadastro
+│       ├── app/(app)/       movimentações, categorias
+│       ├── components/
+│       └── lib/             cliente da API, sessão, formatação
+└── docker-compose.yml
+```
+
+Uma pasta por feature, arquivos planos dentro — o layout que `nest g resource`
+gera. Cada feature tem as três camadas:
+
+```
+auth.controller.ts     só HTTP
+auth.service.ts        regras de negócio, orquestração entre módulos
+users.repository.ts    queries, select, where escopado por dono
+```
+
+**A divisão de responsabilidade entre service e repository**, que vale para os
+três repositórios:
+
+- o **repositório** traduz violação de *constraint* (`P2002`, `P2003`) em erro de
+  domínio, porque é a única camada que enxerga esses códigos. Deixar isso para o
+  service faria o vocabulário do Prisma vazar para a camada de negócio;
+- a **ausência** de registro volta como `null`/`false`, sem exceção. Quem decide o
+  que ausência significa é o service — aqui é 404, em outro fluxo poderia ser
+  "criar se não existe".
+
+---

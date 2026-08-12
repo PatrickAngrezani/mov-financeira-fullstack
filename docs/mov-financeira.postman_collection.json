@@ -1,0 +1,511 @@
+{
+  "info": {
+    "name": "Movimentações Financeiras — API",
+    "description": "Colecao completa da API.\n\n**Base URL: http://localhost:3001** (porta 3001, nao 3000 — a 3000 e o frontend Next e devolve HTML).\n\nRode `Auth > Login` primeiro: o script de teste guarda o accessToken na variavel {{token}} da colecao, e todas as demais requisicoes ja o usam via Bearer herdado.\n\n**Rate limit:** um script de pre-request varia o header `X-Forwarded-For` a cada chamada, para a colecao inteira rodar sem bater em 429. Para testar o limite de proposito, fixe o IP (ver comentario no script da colecao).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "categoryId",
+      "value": ""
+    },
+    {
+      "key": "movementId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /auth/register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// O registro faz auto-login: já vem token na resposta.",
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('token', pm.response.json().accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ana Souza\",\n  \"email\": \"ana@exemplo.com\",\n  \"password\": \"senha-forte-123\"\n}"
+            },
+            "description": "Público. Cria a conta com as 8 categorias padrão e devolve o token.\n\n201 · 400 VALIDATION_FAILED · 409 EMAIL_ALREADY_REGISTERED · 429\n\nSenha: mínimo 8, máximo 128 caracteres."
+          }
+        },
+        {
+          "name": "POST /auth/login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set('token', pm.response.json().accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"demo@movfinanceira.dev\",\n  \"password\": \"demo-senha-123\"\n}"
+            },
+            "description": "Público. Credenciais do seed.\n\n200 · 401 INVALID_CREDENTIALS · 429 (10/min por IP)\n\nE-mail inexistente e senha errada devolvem resposta idêntica, de propósito."
+          }
+        },
+        {
+          "name": "GET /auth/me",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Bearer. Perfil do titular do token, lido do banco a cada chamada.\n\n200 · 401 MISSING_TOKEN | INVALID_TOKEN | TOKEN_EXPIRED"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "GET /categories",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 && pm.response.json().length) {",
+                  "  pm.collectionVariables.set('categoryId', pm.response.json()[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/categories?includeArchived=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ],
+              "query": [
+                {
+                  "key": "includeArchived",
+                  "value": "false",
+                  "description": "Padrão false. true inclui as arquivadas."
+                }
+              ]
+            },
+            "description": "Bearer. Ativas primeiro, depois arquivadas, ambas em ordem alfabética.\n\nGuarda o primeiro id em {{categoryId}}."
+          }
+        },
+        {
+          "name": "POST /categories",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('categoryId', pm.response.json().id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Assinaturas\",\n  \"color\": \"#38BDF8\"\n}"
+            },
+            "description": "Bearer. `color` é opcional, hexadecimal de 6 dígitos. `name` até 60 caracteres.\n\n201 · 400 · 409 CATEGORY_ALREADY_EXISTS (nome único POR usuário)"
+          }
+        },
+        {
+          "name": "GET /categories/:id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{categoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "{{categoryId}}"
+              ]
+            },
+            "description": "Bearer.\n\n200 · 400 (id não é uuid) · 404 CATEGORY_NOT_FOUND\n\nCategoria de outro usuário devolve 404, nunca 403."
+          }
+        },
+        {
+          "name": "PATCH /categories/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{categoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "{{categoryId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Assinaturas e streaming\",\n  \"color\": \"#0EA5E9\",\n  \"archived\": false\n}"
+            },
+            "description": "Bearer. Todos os campos opcionais.\n\n`archived: true` arquiva (sai dos formulários, histórico preservado); `false` reativa.\n\n200 · 400 · 404 · 409 CATEGORY_ALREADY_EXISTS"
+          }
+        },
+        {
+          "name": "DELETE /categories/:id",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{categoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "{{categoryId}}"
+              ]
+            },
+            "description": "Bearer. Sem corpo.\n\n204 · 404 · **409 CATEGORY_IN_USE** quando há movimentações vinculadas — nesse caso o caminho é arquivar."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Movements",
+      "item": [
+        {
+          "name": "GET /movements",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/movements?page=1&perPage=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "movements"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "≥ 1. Padrão 1."
+                },
+                {
+                  "key": "perPage",
+                  "value": "20",
+                  "description": "1 a 100. Padrão 20."
+                },
+                {
+                  "key": "type",
+                  "value": "EXPENSE",
+                  "disabled": true,
+                  "description": "INCOME | EXPENSE"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "disabled": true,
+                  "description": "uuid"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-08-01",
+                  "disabled": true,
+                  "description": "YYYY-MM-DD, inclusivo"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-08-31",
+                  "disabled": true,
+                  "description": "YYYY-MM-DD, inclusivo"
+                }
+              ]
+            },
+            "description": "Bearer. Resposta: `{ data: [...], meta: { page, perPage, total, totalPages } }`.\n\nOrdenação fixa: data decrescente, id como desempate.\n\n200 · 400 · 422 INVALID_PERIOD (from posterior a to)\n\nOs filtros vêm desabilitados — habilite os que quiser testar."
+          }
+        },
+        {
+          "name": "POST /movements",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('movementId', pm.response.json().id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/movements",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "movements"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"EXPENSE\",\n  \"amount\": \"1234.56\",\n  \"description\": \"Assinatura mensal\",\n  \"occurredAt\": \"2026-08-10\",\n  \"categoryId\": \"{{categoryId}}\"\n}"
+            },
+            "description": "Bearer. Rode `GET /categories` antes para popular {{categoryId}}.\n\n**`amount` é STRING**, sempre positiva, até 2 casas — o sinal vem de `type`. String para o valor não passar por float IEEE-754.\n\n**`occurredAt` é YYYY-MM-DD**, sem hora e sem fuso. Timestamp completo é rejeitado.\n\n201 · 400 · 422 CATEGORY_NOT_FOUND | CATEGORY_ARCHIVED"
+          }
+        },
+        {
+          "name": "GET /movements/:id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/movements/{{movementId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "movements",
+                "{{movementId}}"
+              ]
+            },
+            "description": "Bearer.\n\n200 · 400 · 404 MOVEMENT_NOT_FOUND"
+          }
+        },
+        {
+          "name": "PATCH /movements/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/movements/{{movementId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "movements",
+                "{{movementId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": \"99.90\",\n  \"description\": \"Assinatura anual\"\n}"
+            },
+            "description": "Bearer. Todos os campos opcionais: `type`, `amount`, `description`, `occurredAt`, `categoryId`.\n\nA categoria só é validada quando `categoryId` vem no corpo — editar valor de um lançamento cuja categoria foi arquivada depois continua funcionando.\n\n200 · 400 · 404 · 422"
+          }
+        },
+        {
+          "name": "DELETE /movements/:id",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/movements/{{movementId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "movements",
+                "{{movementId}}"
+              ]
+            },
+            "description": "Bearer. Sem corpo. Exclusão definitiva.\n\n204 · 404"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /health/live",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/health/live",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health",
+                "live"
+              ]
+            },
+            "description": "Público. Não toca o banco: responde apenas se o processo está no ar."
+          }
+        },
+        {
+          "name": "GET /health/ready",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/health/ready",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health",
+                "ready"
+              ]
+            },
+            "description": "Público. Verifica o banco.\n\n200 · 503 DATABASE_UNAVAILABLE"
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Rate limit e por IP, e a API confia em X-Forwarded-For (trustProxy).",
+          "// Variar o IP a cada requisicao isola cada chamada no seu proprio balde,",
+          "// entao testar a colecao inteira nao dispara 429 — sem precisar comentar",
+          "// os limites no codigo.",
+          "//",
+          "// Para TESTAR o rate limit de proposito, fixe um IP:",
+          "//   pm.request.headers.upsert({ key: 'X-Forwarded-For', value: '203.0.113.1' });",
+          "const octet = () => Math.floor(Math.random() * 254) + 1;",
+          "pm.request.headers.upsert({",
+          "  key: 'X-Forwarded-For',",
+          "  value: `10.${octet()}.${octet()}.${octet()}`,",
+          "});"
+        ]
+      }
+    }
+  ]
+}
