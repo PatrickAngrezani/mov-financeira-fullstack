@@ -13,7 +13,7 @@ Enunciado original do desafio: [CHALLENGE.md](./CHALLENGE.md).
 `.env` na máquina.
 
 ```bash
-git clone <url-do-repositorio>
+git clone https://github.com/PatrickAngrezani/mov-financeira-fullstack/
 cd mov-financeira-fullstack
 docker compose up -d --build
 ```
@@ -229,8 +229,4 @@ três repositórios:
 - o **repositório** traduz violação de *constraint* (`P2002`, `P2003`) em erro de
   domínio, porque é a única camada que enxerga esses códigos. Deixar isso para o
   service faria o vocabulário do Prisma vazar para a camada de negócio;
-- a **ausência** de registro volta como `null`/`false`, sem exceção. Quem decide o
-  que ausência significa é o service — aqui é 404, em outro fluxo poderia ser
-  "criar se não existe".
-
----
+- a **ausência** de registro volta como `null`/`false`, sem exceção.

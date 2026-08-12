@@ -12,12 +12,11 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     adapter,
-    { bufferLogs: true },
+    {
+      logger: false,
+      abortOnError: false,
+    },
   );
-
-  app.useLogger(app.get(Logger));
-  app.flushLogs();
-
   const config = app.get(AppConfigService);
 
   await app.register(helmet, {
@@ -43,4 +42,7 @@ async function bootstrap(): Promise<void> {
   }
 }
 
-void bootstrap();
+void bootstrap().catch((error: unknown) => {
+  console.error('[bootstrap] failed to start the API:', error);
+  process.exit(1);
+});

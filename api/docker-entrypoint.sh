@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+export NPM_CONFIG_UPDATE_NOTIFIER=false
+
 # Migrations run on start
 echo "[entrypoint] aplicando migrations..."
 npx prisma migrate deploy
